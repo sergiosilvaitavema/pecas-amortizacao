@@ -9,41 +9,17 @@ from typing import Optional
 #  Conexão
 # ═══════════════════════════════════════════════════════
 
-def _detectar_driver() -> str:
-    """Detecta o melhor driver ODBC disponível."""
-    preferidos = [
-        "ODBC Driver 18 for SQL Server",
-        "ODBC Driver 17 for SQL Server",
-        "ODBC Driver 13 for SQL Server",
-        "SQL Server",
-    ]
-    disponiveis = set(pyodbc.drivers())
-    for drv in preferidos:
-        if drv in disponiveis:
-            return drv
-    return ""
-
-
 def conectar(ip: str, database: str, user: str, password: str) -> pyodbc.Connection:
     """Abre conexão ODBC com o SQL Server."""
-    driver = _detectar_driver()
-    if not driver:
-        drivers = pyodbc.drivers()
-        raise RuntimeError(
-            f"Nenhum driver ODBC para SQL Server encontrado. "
-            f"Drivers instalados: {drivers if drivers else 'NENHUM}. "
-            f"Instale 'ODBC Driver 17 for SQL Server' ou 'ODBC Driver 18 for SQL Server'."
-        )
     conn_str = (
-        f"Driver={{{driver}}};"
+        "Driver={ODBC Driver 18 for SQL Server};"
         f"Server={ip};"
         f"Database={database};"
-        f"Uid={user};"
-        f"Pwd={password};"
-        f"Encrypt=no;"
-        f"TrustServerCertificate=yes;"
+        f"UID={user};"
+        f"PWD={password};"
+        "TrustServerCertificate=yes;"
     )
-    return pyodbc.connect(conn_str, autocommit=False)
+    return pyodbc.connect(conn_str)
 
 
 # ═══════════════════════════════════════════════════════
