@@ -12,7 +12,7 @@ from typing import Optional
 def conectar(ip: str, database: str, user: str, password: str) -> pyodbc.Connection:
     """Abre conexão ODBC com o SQL Server."""
     conn_str = (
-        f"Driver={{ODBC Driver 17 for SQL Server}};"
+        f"Driver={{ODBC Driver 18 for SQL Server}};"
         f"Server={ip};"
         f"Database={database};"
         f"Uid={user};"
