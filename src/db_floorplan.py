@@ -21,12 +21,19 @@ def _detectar_driver() -> str:
     for drv in preferidos:
         if drv in disponiveis:
             return drv
-    return "SQL Server"
+    return ""
 
 
 def conectar(ip: str, database: str, user: str, password: str) -> pyodbc.Connection:
     """Abre conexão ODBC com o SQL Server."""
     driver = _detectar_driver()
+    if not driver:
+        drivers = pyodbc.drivers()
+        raise RuntimeError(
+            f"Nenhum driver ODBC para SQL Server encontrado. "
+            f"Drivers instalados: {drivers if drivers else 'NENHUM}. "
+            f"Instale 'ODBC Driver 17 for SQL Server' ou 'ODBC Driver 18 for SQL Server'."
+        )
     conn_str = (
         f"Driver={{{driver}}};"
         f"Server={ip};"
