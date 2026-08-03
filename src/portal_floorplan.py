@@ -4,6 +4,12 @@ from time import sleep
 from rpaflow.browser import Browser
 
 from src.core.config import Config
+from src.db_floorplan import (
+    aguardar_token_do_banco,
+    gravar_status_robo,
+    limpar_mensagens,
+    logar_mensagem,
+)
 
 
 class PortalFloorplan:
@@ -45,10 +51,12 @@ class PortalFloorplan:
     LINK_NF = "//table[@role='grid']/tbody/tr[{}]/td[1]/a[@class='linkPagina']"
     COL_VENCIMENTO = "//table[@role='grid']/tbody/tr[{}]/td[4]"
 
-    def __init__(self, config: Config, browser: Browser):
+    def __init__(self, config: Config, browser: Browser, db_conn, id_execucao: int):
         self._config = config
         self._browser = browser
         self._log = config.log
+        self._db_conn = db_conn
+        self._id_execucao = id_execucao
 
         # ─── XPaths dinâmicos (dependem de config) ───
         empresa = config.empresa
@@ -67,15 +75,28 @@ class PortalFloorplan:
     def executar(self) -> None:
         """Fluxo completo: portal → login → empresa → tabela → vencimentos."""
         self._log.info("[Floorplan] Iniciando acesso ao portal Floorplan")
-        self._abrir_portal()
-        self._login()
-        self._log.info("[Floorplan] Login concluído")
+        limpar_mensagens(self._db_conn)
+        logar_mensagem(self._db_conn, "Robo iniciado")
 
-        self._browser.switch_to_tab(0)
+        try:
+            self._abrir_portal()
+            self._login()
+            self._log.info("[Floorplan] Login concluído")
+            logar_mensagem(self._db_conn, "Login concluído")
 
-        self._selecionar_empresa()
-        self._selecionar_opcao()
-        self._processar_vencimentos()
+            self._browser.switch_to_tab(0)
+
+            self._selecionar_empresa()
+            self._selecionar_opcao()
+            self._processar_vencimentos()
+
+            gravar_status_robo(self._db_conn, self._id_execucao, "SUCESSO")
+            logar_mensagem(self._db_conn, "Robo finalizado")
+        except Exception as e:
+            self._log.error(f"[Floorplan] Erro na execução: {e}")
+            gravar_status_robo(self._db_conn, self._id_execucao, "ERRO")
+            logar_mensagem(self._db_conn, f"ERRO: {e}")
+            raise
 
     # ════════════════════════════════════════════
     #  Portal / Login
@@ -128,6 +149,7 @@ class PortalFloorplan:
             }})()
         """)
         self._log.info("[Floorplan] Credenciais preenchidas")
+        logar_mensagem(self._db_conn, "Credenciais preenchidas")
 
         self._browser.click(self.BTN_LOGIN, timeout=10000)
         self._esperar_carregar()
@@ -137,9 +159,20 @@ class PortalFloorplan:
         sleep(1)
         self._browser.click(self.BTN_SEND_CODE, timeout=10000)
         self._log.info("[Floorplan] Codigo de verificacao enviado")
+        logar_mensagem(self._db_conn, "Codigo de verificação enviado. Aguardando token...")
         self._esperar_carregar()
         sleep(1)
-        token = str(input("Digite o código de verificação recebido por SMS: ")).strip()
+
+        # Sinaliza ao C# que está aguardando o token
+        gravar_status_robo(self._db_conn, self._id_execucao, "ESPERANDO_TOKEN")
+        self._log.info("[Floorplan] Aguardando token via banco de dados...")
+        logar_mensagem(self._db_conn, "Robô aguardando token do usuário")
+
+        # Aguarda o token ser inserido pelo usuário na tela C#
+        token = aguardar_token_do_banco(self._db_conn, self._id_execucao)
+        self._log.info("[Floorplan] Token recebido com sucesso")
+        logar_mensagem(self._db_conn, "Token recebido. Processando login...")
+
         self._browser.fill_text(self.INPUT_TOKEN, text=token, timeout=10000)
         sleep(0.2)
         self._browser.click(self.BTN_LOGIN, timeout=10000)

@@ -91,3 +91,24 @@ class Config:
     @property
     def select_opcao(self) -> str:
         return self._settings.get("FLOORPLAN", "select_opcao")
+
+    # ─── Banco de dados ─────────────────────────
+    @property
+    def db_ip(self) -> str:
+        return self._secrets.get("BANCO", "ip")
+
+    @property
+    def db_database(self) -> str:
+        return self._secrets.get("BANCO", "database")
+
+    @property
+    def db_user(self) -> str:
+        return self._secrets.get("BANCO", "user")
+
+    @property
+    def db_password(self) -> str:
+        return self._secrets.get("BANCO", "pass")
+
+    @property
+    def processo(self) -> str:
+        return "Renault Floorplan Saldo Dividas"
