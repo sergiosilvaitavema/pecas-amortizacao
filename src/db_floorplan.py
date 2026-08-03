@@ -13,10 +13,11 @@ def conectar(ip: str, database: str, user: str, password: str) -> pyodbc.Connect
     """Abre conexão ODBC com o SQL Server."""
     conn_str = (
         "Driver={ODBC Driver 18 for SQL Server};"
-        f"Server={ip};"
+        f"Server=tcp:{ip};"
         f"Database={database};"
         f"UID={user};"
         f"PWD={password};"
+        "Encrypt=no;"
         "TrustServerCertificate=yes;"
     )
     return pyodbc.connect(conn_str)
